@@ -97,10 +97,17 @@ def add_features(all_features, dictionary):
 
 def artist_tracks_dict(artist_name):
     list_tracks =[]
-    for offset in range(0,500,50):
-        x = sp.search(artist_name, 50, offset, type = 'track')
-        temp = [track for track in x['tracks']['items']]
-        list_tracks.extend(temp)
+    user_input = input("1. For Specific Artist Search 2. For general search \n")
+    if user_input == '1':
+        for offset in range(0,500,50):
+            x = sp.search( q='artist:' + artist_name, limit = 50, offset = offset, type = 'track')
+            temp = [track for track in x['tracks']['items']]
+            list_tracks.extend(temp)
+    else:
+        for offset in range(0,500,50):
+            x = sp.search( artist_name, limit = 50, offset = offset, type = 'track')
+            temp = [track for track in x['tracks']['items']]
+            list_tracks.extend(temp)
     top_track_dict = [{'album':item['album']['name'], 'album_id':item['album']['id'], 'album_release':item['album']['release_date'],'artist':item['artists'][0]['name'],'track_name':item['name'],'track_id':item['id']} for item in list_tracks]
     for piece in list_tracks:
         for section in top_track_dict:
@@ -230,12 +237,14 @@ def add_to_playlist(sp, recommendations):
 
 if __name__ == "__main__":
 
+    user_input = input("Enter search query: ")
+    
     max_recommendations = 100
     httpd = initServer()
 
     sp = initSpotipy()
 
-    artist = artist_tracks_dict('Future Islands')
+    artist = artist_tracks_dict(user_input)
     a_df = pd.DataFrame(artist)
     # a_df = a_df.query("artist == 'The Chemical Brothers'")
 
