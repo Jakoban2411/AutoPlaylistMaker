@@ -218,7 +218,7 @@ def all_distance(user,artist,a_df):
 
 def add_to_playlist(sp, recommendations):
     id_add = list(recommendations['track_id'].to_dict().values())
-    token2 = call_api('mrethana', 'playlist-modify-public')
+    token2 = call_api('Jako2411', 'playlist-modify-public')
     sp2 = spotipy.Spotify(auth=token2)
     return_to_dict = recommendations['artist'].to_dict()
     artist_name = list(return_to_dict.values())[0]
