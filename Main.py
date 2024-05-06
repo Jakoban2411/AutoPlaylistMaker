@@ -137,6 +137,12 @@ def create_top_tracks_dict(sp, period):
                     dic['feature'] = 'No Feature'
     return top_track_dict
 
+def create_track_dict(sp, track_name, artist_name):
+    x = sp.search(q='track:' + track_name + ' artist:' + artist_name, limit=1, type='track')
+    top_result=x['tracks']['items'][0]
+    track_dict = [{'album':top_result['album']['name'], 'album_id':top_result['album']['id'], 'album_release':top_result['album']['release_date'],'artist':top_result['artists'][0]['name'],'track_name':top_result['name'],'track_id':top_result['id']}]
+    return track_dict
+
 def audio_analysis(id):
     full_list = []
     analysis = sp.audio_analysis(id)
@@ -239,6 +245,8 @@ if __name__ == "__main__":
 
     user_input = input("Enter search query: ")
     
+    song_mode = input("1.Search songs similar to a specific song 2.Search songs similar to your taste profile: ")
+
     max_recommendations = 100
     httpd = initServer()
 
@@ -247,29 +255,42 @@ if __name__ == "__main__":
     artist = artist_tracks_dict(user_input)
     a_df = pd.DataFrame(artist)
     # a_df = a_df.query("artist == 'The Chemical Brothers'")
-
-    lt = create_top_tracks_dict(sp, 'long_term')
-    lt_features = create_features(lt)
-    st = create_top_tracks_dict(sp, 'short_term')
-    st_features = create_features(st)
-    mt = create_top_tracks_dict(sp, 'medium_term')
-    mt_features = create_features(mt)
-    lt_df = pd.DataFrame(lt)
-    st_df = pd.DataFrame(st)
-    mt_df = pd.DataFrame(mt)
-    lt_df = extend_frame(lt_df)
-    mt_df = extend_frame(mt_df)
-    st_df = extend_frame(st_df)
-    frames = [lt_df, st_df, mt_df]
+    if(song_mode == '2'):
+        lt = create_top_tracks_dict(sp, 'long_term')
+        lt_features = create_features(lt)
+        st = create_top_tracks_dict(sp, 'short_term')
+        st_features = create_features(st)
+        mt = create_top_tracks_dict(sp, 'medium_term')
+        mt_features = create_features(mt)
+        lt_df = pd.DataFrame(lt)
+        st_df = pd.DataFrame(st)
+        mt_df = pd.DataFrame(mt)
+        lt_df = extend_frame(lt_df)
+        mt_df = extend_frame(mt_df)
+        st_df = extend_frame(st_df)
+        frames = [lt_df, st_df, mt_df]
+    else:
+        track_name = input("Enter track name: ")
+        artist_name = input("Enter artist name: ")
+        t_dict = create_track_dict(sp, track_name,artist_name)
+        t_features = create_features(t_dict) 
+        t_df = pd.DataFrame(t_dict)
+        frames = [t_df]
     all_df = pd.concat(frames)
-    all_df.to_csv('Jako.csv')   #Debug csv view
-    features = relevant_features(all_df)
-
+    all_df.to_csv('Jako.csv')   #Debug csv viewer
+        
+    if song_mode == '2':    
+        features = relevant_features(all_df)
+    else:
+        features = ['energy', 'valence', 'tempo','danceability','acousticness','key', 'loudness', 'key', 'mode']
     a_df.key = a_df.key/11
     all_df.key = all_df.key/11
 
     profile = np.array([all_df[feat].mean() for feat in features])
-    compare = a_df[[features[0],features[1],features[2]]].values
+    if song_mode == '2':
+        compare = a_df[[features[0],features[1],features[2]]].values
+    else:
+        compare = a_df[features].values
 
     all_similarities(profile,compare,a_df)
     a_df.nlargest(max_recommendations,'cos_similarity')
@@ -281,3 +302,4 @@ if __name__ == "__main__":
     add_to_playlist(sp, rec)
 
     httpd.shutdown()
+    exit(0)
