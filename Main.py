@@ -95,17 +95,32 @@ def add_features(all_features, dictionary):
                 dic['tempo'] = item['tempo']
                 dic['mode'] = item['mode']
 
-def artist_tracks_dict(artist_name):
+def get_song_genre(track_name, artist_name):
+    x = sp.search(q='track:' + track_name + ' artist:' + artist_name, limit=1, type='track')
+    artist_id = x['tracks']['items'][0]["artists"][0]["id"]
+    artist_data = sp.artist(artist_id)
+    genres = []
+    genres += artist_data["genres"]
+    album_id = x['tracks']['items'][0]['album']["id"]
+    album_data = sp.album(album_id)
+    genres += album_data["genres"]
+    return genres
+
+def artist_tracks_dict(artist_name, genre = None):
     list_tracks =[]
     user_input = input("1. For Specific Artist Search 2. For general search \n")
+    genre_data = ''
+    if genre != None:
+        genre_data = 'genre: '
+        genre_data += ','.join(genre)
     if user_input == '1':
         for offset in range(0,500,50):
-            x = sp.search( q='artist:' + artist_name, limit = 50, offset = offset, type = 'track')
+            x = sp.search( q='artist: ' + artist_name + genre_data, limit = 50, offset = offset, type = 'track')
             temp = [track for track in x['tracks']['items']]
             list_tracks.extend(temp)
     else:
         for offset in range(0,500,50):
-            x = sp.search( artist_name, limit = 50, offset = offset, type = 'track')
+            x = sp.search( q =  artist_name + genre_data, limit = 50, offset = offset, type = 'track')
             temp = [track for track in x['tracks']['items']]
             list_tracks.extend(temp)
     top_track_dict = [{'album':item['album']['name'], 'album_id':item['album']['id'], 'album_release':item['album']['release_date'],'artist':item['artists'][0]['name'],'track_name':item['name'],'track_id':item['id']} for item in list_tracks]
@@ -245,14 +260,19 @@ if __name__ == "__main__":
 
     user_input = input("Enter search query: ")
     
-    song_mode = input("1.Search songs similar to a specific song 2.Search songs similar to your taste profile: ")
+    song_mode = input("1.Search songs similar to a specific song 2.Search songs similar to your taste profile 3.Genre based: ")
 
     max_recommendations = 100
     httpd = initServer()
 
     sp = initSpotipy()
 
-    artist = artist_tracks_dict(user_input)
+    if(song_mode == '1'):
+        track_name = input("Enter track name: ")
+        artist_name = input("Enter artist name: ")
+        genre = get_song_genre(track_name, artist_name)
+
+    artist = artist_tracks_dict(user_input, genre)
     a_df = pd.DataFrame(artist)
     # a_df = a_df.query("artist == 'The Chemical Brothers'")
     if(song_mode == '2'):
@@ -270,8 +290,6 @@ if __name__ == "__main__":
         st_df = extend_frame(st_df)
         frames = [lt_df, st_df, mt_df]
     else:
-        track_name = input("Enter track name: ")
-        artist_name = input("Enter artist name: ")
         t_dict = create_track_dict(sp, track_name,artist_name)
         t_features = create_features(t_dict) 
         t_df = pd.DataFrame(t_dict)
